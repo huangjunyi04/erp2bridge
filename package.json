@@ -1,0 +1,42 @@
+{
+  "name": "@openclaw/erp2-bridge",
+  "version": "1.0.0",
+  "description": "OpenClaw channel plugin – connect OpenClaw to an ERP2 Java backend via WebSocket (WSS) with session isolation and uid/sessionKey identity metadata",
+  "type": "module",
+  "main": "./index.ts",
+  "files": [
+    "index.ts",
+    "openclaw.plugin.json",
+    "package.json"
+  ],
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/ws": "^8.5.14"
+  },
+  "peerDependencies": {
+    "openclaw": ">=2026.2.19"
+  },
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ],
+    "install": {
+      "minHostVersion": ">=2026.2.19"
+    },
+    "channel": {
+      "id": "erp2-bridge",
+      "label": "ERP2 Bridge",
+      "selectionLabel": "ERP2 Bridge (Java Backend via WebSocket)",
+      "detailLabel": "ERP2 Bridge",
+      "docsPath": "/channels/erp2-bridge",
+      "docsLabel": "erp2-bridge",
+      "blurb": "Connect OpenClaw to an ERP2 Java backend server via a persistent WebSocket with session isolation and uid/sessionKey identity.",
+      "systemImage": "network"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
