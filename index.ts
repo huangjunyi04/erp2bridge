@@ -51,6 +51,10 @@ interface WireInboundMessage {
   messageId?: string;
   /** Java-side user identity – derived from sender. */
   uid: string;
+  /** DX user ID – passed directly from the Java backend dxuid field. */
+  dxuid?: string;
+  /** Human-readable sender name – passed directly from the Java backend fromName field. */
+  fromName?: string;
   /** Session key for conversation isolation. */
   sessionKey: string;
   /** Optional human-readable sender name. */
@@ -85,6 +89,8 @@ function normalizeInbound(raw: unknown): WireInboundMessage | null {
   const timestamp = typeof m["timestamp"] === "number" ? m["timestamp"] : Date.now();
   const token = typeof m["token"] === "string" ? m["token"].trim() : undefined;
   const tenantCode = typeof m["tenantCode"] === "string" ? m["tenantCode"].trim() : undefined;
+  const dxuid = typeof m["dxuid"] === "string" ? m["dxuid"].trim() : undefined;
+  const fromName = typeof m["fromName"] === "string" ? m["fromName"].trim() : undefined;
 
   if (!content || !sender) return null;
 
@@ -104,6 +110,8 @@ function normalizeInbound(raw: unknown): WireInboundMessage | null {
     data: m["data"],
     token,
     tenantCode,
+    dxuid,
+    fromName,
     // derived
     uid: sender,
     sessionKey,
@@ -129,6 +137,10 @@ interface WireOutboundMessage {
   timestamp: number;
   /** Extended data (optional). */
   data?: unknown;
+  /** DX user ID – echoed back from the inbound dxuid field. */
+  dxuid?: string;
+  /** Human-readable sender name – echoed back from the inbound fromName field. */
+  fromName?: string;
 }
 
 // ── Account resolution ────────────────────────────────────────────────────────
@@ -289,7 +301,7 @@ async function monitorWssConnection(opts: MonitorOptions): Promise<void> {
 
   const reconnectBaseMs = account.config.reconnectBaseMs ?? 1000;
   const reconnectMaxMs = account.config.reconnectMaxMs ?? 30_000;
-  const pingIntervalMs = account.config.pingIntervalMs ?? 30_000;
+  const pingIntervalMs = account.config.pingIntervalMs ?? 15_000;
   const connectTimeoutMs = account.config.connectTimeoutMs ?? 10_000;
 
   let attempt = 0;
@@ -721,6 +733,10 @@ async function handleInbound(
     await channelRuntime.reply.dispatchReplyWithBufferedBlockDispatcher({
       ctx: ctxPayload,
       cfg,
+      replyOptions: {
+        // 强制开启 block streaming：AI 每生成一段就立即推送，不等完整回复
+        disableBlockStreaming: false,
+      },
       dispatcherOptions: {
         deliver: async (payload) => {
           // payload is ReplyPayload; extract text to send back to the Java backend
@@ -732,6 +748,8 @@ async function handleInbound(
             sender: "openclaw",
             receiver: msg.sender ?? msg.uid,
             timestamp: Date.now(),
+            dxuid: msg.dxuid,
+            fromName: msg.fromName,
           };
           sendFn(outbound);
           // Record outbound activity for status visibility.
