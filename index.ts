@@ -141,7 +141,7 @@ interface WireOutboundMessage {
   dxuid?: string;
   /** Human-readable sender name – echoed back from the inbound fromName field. */
   fromName?: string;
-  /** Inbound message ID this reply corresponds to – for dedup and correlation on the Java side. */
+  /** Unique outbound message ID generated per delivery frame. */
   messageId?: string;
 }
 
@@ -752,7 +752,7 @@ async function handleInbound(
             timestamp: Date.now(),
             dxuid: msg.dxuid,
             fromName: msg.fromName,
-            messageId: msg.messageId,
+            messageId: `${msg.sender ?? "openclaw"}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
           };
           sendFn(outbound);
           // Record outbound activity for status visibility.
