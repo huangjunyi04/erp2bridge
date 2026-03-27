@@ -141,6 +141,8 @@ interface WireOutboundMessage {
   dxuid?: string;
   /** Human-readable sender name – echoed back from the inbound fromName field. */
   fromName?: string;
+  /** Inbound message ID this reply corresponds to – for dedup and correlation on the Java side. */
+  messageId?: string;
 }
 
 // ── Account resolution ────────────────────────────────────────────────────────
@@ -750,6 +752,7 @@ async function handleInbound(
             timestamp: Date.now(),
             dxuid: msg.dxuid,
             fromName: msg.fromName,
+            messageId: msg.messageId,
           };
           sendFn(outbound);
           // Record outbound activity for status visibility.
