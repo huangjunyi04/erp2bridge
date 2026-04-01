@@ -418,6 +418,7 @@ async function monitorWssConnection(opts: MonitorOptions): Promise<void> {
           log("warn", `[${account.accountId}] non-JSON frame received: ${raw.slice(0, 120)}`);
           return;
         }
+        log("debug", `[${account.accountId}] raw frame: ${raw.slice(0, 300)}`);
 
         // Define sendFn before any usage (including PING reply)
         const sendFn: SendFn = (outbound) => {
@@ -492,6 +493,8 @@ async function handleInbound(
 ): Promise<void> {
   const rawBody = msg.text.trim();
   if (!rawBody) return;
+
+  log("debug", `[erp2-bridge] inbound: sender=${msg.sender} uid=${msg.uid} dxuid=${msg.dxuid ?? "-"} isGroup=${msg.isGroup ?? false} groupId=${msg.groupId ?? "-"} messageId=${msg.messageId ?? "-"} content=${msg.text.slice(0, 100)}`);
 
   // ── Deduplicate ───────────────────────────────────────────────────────────
   // Reject messages whose ID was already seen within the TTL window.
@@ -628,6 +631,7 @@ async function handleInbound(
   // - Group chats: groupId (or sessionKey fallback) → independent group context
   // - DMs: sessionKey → per-session isolation (one user can have many sessions)
   const peerId = msg.isGroup ? (msg.groupId ?? msg.sessionKey) : msg.sessionKey;
+  log("debug", `[erp2-bridge] route: isGroup=${msg.isGroup ?? false} peerId=${peerId} sessionKey=${msg.sessionKey} groupId=${msg.groupId ?? "-"}`);
 
   const route = channelRuntime.routing.resolveAgentRoute({
     cfg,
@@ -690,7 +694,7 @@ async function handleInbound(
     From: msg.isGroup
       ? `erp2-bridge:group:${peerId}:uid:${msg.uid}`
       : `erp2-bridge:uid:${msg.uid}:session:${msg.sessionKey}`,
-    To: `erp2-bridge:${peerId}`,
+    To: `erp2-bridge:${peerId}`,  // sendText 的 outboundCtx.to 就是这个值
     SessionKey: route.sessionKey,
     AccountId: route.accountId,
     ChatType: msg.isGroup ? ("group" as const) : ("direct" as const),
@@ -754,6 +758,7 @@ async function handleInbound(
             fromName: msg.fromName,
             messageId: `${msg.sender ?? "openclaw"}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
           };
+          log("debug", `[erp2-bridge] outbound: receiver=${outbound.receiver} dxuid=${outbound.dxuid ?? "-"} messageId=${outbound.messageId ?? "-"} content=${text.slice(0, 100)}`);
           sendFn(outbound);
           // Record outbound activity for status visibility.
           channelRuntime.activity.record({
@@ -945,10 +950,11 @@ const wssBridgePlugin: ChannelPlugin<ResolvedAccount> = {
         throw new Error("erp2-bridge not configured – set channels.erp2-bridge.wsUrl");
       }
 
-      // Parse the 'to' target: expected format is "uid" or "uid:sessionKey"
-      const [uid] = outboundCtx.to.includes(":")
-        ? outboundCtx.to.split(":")
-        : [outboundCtx.to];
+      // Parse the 'to' target: framework sets To as "erp2-bridge:{peerId}", strip the channel prefix
+      const uid = outboundCtx.to.startsWith("erp2-bridge:")
+        ? outboundCtx.to.slice("erp2-bridge:".length)
+        : outboundCtx.to;
+      console.log(`[erp2-bridge] sendText: to=${outboundCtx.to} → uid=${uid}`);
 
       const outbound: WireOutboundMessage = {
         type: "CHAT",
@@ -956,6 +962,7 @@ const wssBridgePlugin: ChannelPlugin<ResolvedAccount> = {
         sender: "openclaw",
         receiver: uid ?? outboundCtx.to,
         timestamp: Date.now(),
+        messageId: `${uid ?? "openclaw"}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       };
 
       // Helper to record outbound activity (best-effort, ignore errors)
