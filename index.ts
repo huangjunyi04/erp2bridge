@@ -81,7 +81,20 @@ function normalizeInbound(raw: unknown): WireInboundMessage | null {
     return null;
   }
 
-  const content = typeof m["content"] === "string" ? m["content"].trim() : "";
+  // content 可能是纯文本，也可能是嵌套 JSON（如 {"text":"...","fontName":"serif"}）
+  // 优先取嵌套 JSON 里的 text 字段作为实际消息内容
+  const rawContent = typeof m["content"] === "string" ? m["content"].trim() : "";
+  let content = rawContent;
+  if (rawContent.startsWith("{")) {
+    try {
+      const parsed = JSON.parse(rawContent) as Record<string, unknown>;
+      if (typeof parsed["text"] === "string" && parsed["text"].trim()) {
+        content = parsed["text"].trim();
+      }
+    } catch {
+      // 不是合法 JSON，保持原始值
+    }
+  }
   const sender = typeof m["sender"] === "string" ? m["sender"].trim() : "";
   // 忽略自己发出去的消息（sender=openclaw），避免死循环
   if (sender === "openclaw") return null;
@@ -691,6 +704,11 @@ async function handleInbound(
     BodyForAgent: body,
     RawBody: rawBody,
     CommandBody: rawBody,
+    // CommandAuthorized must be true so the framework's reset-trigger check
+    // (resolveCommandAuthorization) grants permission to execute /new and /reset.
+    // Without this flag, isAuthorizedSender evaluates to false and the reset
+    // is silently skipped — the command falls through to the AI as a normal message.
+    CommandAuthorized: true,
     From: msg.isGroup
       ? `erp2-bridge:group:${peerId}:uid:${msg.uid}`
       : `erp2-bridge:uid:${msg.uid}:session:${msg.sessionKey}`,
@@ -732,6 +750,18 @@ async function handleInbound(
       log("warn", `[erp2-bridge] recordInboundSession failed: ${String(err)}`);
     },
   });
+
+  // ── /new 和 /reset 命令：直接委托给 dispatchReply 层处理 ─────────────────
+  // DEFAULT_RESET_TRIGGERS (["/new", "/reset"]) 是框架内置的 reset 触发词。
+  // 只要把这两个命令正常交给 dispatchReplyWithBufferedBlockDispatcher，框架会
+  // 自动完成 session reset（归档 transcript、刷新 sessionId、触发 before_reset
+  // 钩子），无需插件层直接操作文件系统。
+  //
+  // ⚠️ 旧实现（直接 rename .jsonl + 改 sessions.json）的问题：
+  // - 硬编码内部文件路径，版本兼容性差
+  // - 无并发锁，存在 race condition
+  // - 不触发 before_reset / session_end 等生命周期钩子
+  // - sessionId 刷新不规范
 
   // ── Dispatch to OpenClaw AI engine ────────────────────────────────────────
   // Wrap in try/catch to send user-visible error replies when the model call fails.
