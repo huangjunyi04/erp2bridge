@@ -6,8 +6,8 @@
  * metadata, configurable DM and group policies, automatic reconnection with
  * exponential backoff, and ping/pong heartbeat.
  *
- * Install:  openclaw plugins install @openclaw/erp2-bridge
- * Docs:     https://docs.openclaw.ai/channels/erp2-bridge
+ * Install:  openclaw plugins install @openclaw/baicao-bridge
+ * Docs:     https://docs.openclaw.ai/channels/baicao-bridge
  */
 
 import type {
@@ -197,7 +197,7 @@ interface ResolvedAccount {
 
 type CoreConfig = OpenClawConfig & {
   channels?: {
-    "erp2-bridge"?: WssBridgeAccountConfig & {
+    "baicao-bridge"?: WssBridgeAccountConfig & {
       accounts?: Record<string, WssBridgeAccountConfig>;
       defaultAccount?: string;
     };
@@ -217,7 +217,7 @@ function readTokenFromFile(filePath: string): string {
 
 function resolveAccount(cfg: OpenClawConfig, accountId?: string | null): ResolvedAccount {
   const core = cfg as CoreConfig;
-  const channelCfg = core.channels?.["erp2-bridge"];
+  const channelCfg = core.channels?.["baicao-bridge"];
   const id = accountId?.trim() || channelCfg?.defaultAccount?.trim() || "default";
   const accountOverride = channelCfg?.accounts?.[id] ?? {};
   // Merge top-level config with per-account overrides (account wins)
@@ -256,7 +256,7 @@ function resolveAccount(cfg: OpenClawConfig, accountId?: string | null): Resolve
 }
 
 function listAccountIds(cfg: OpenClawConfig): string[] {
-  const channelCfg = (cfg as CoreConfig).channels?.["erp2-bridge"];
+  const channelCfg = (cfg as CoreConfig).channels?.["baicao-bridge"];
   if (!channelCfg) return [];
   const accountKeys = Object.keys(channelCfg.accounts ?? {});
   // Always include "default" if the top-level channel config has a wsUrl
@@ -507,7 +507,7 @@ async function handleInbound(
   const rawBody = msg.text.trim();
   if (!rawBody) return;
 
-  log("debug", `[erp2-bridge] inbound: sender=${msg.sender} uid=${msg.uid} dxuid=${msg.dxuid ?? "-"} isGroup=${msg.isGroup ?? false} groupId=${msg.groupId ?? "-"} messageId=${msg.messageId ?? "-"} content=${msg.text.slice(0, 100)}`);
+  log("debug", `[baicao-bridge] inbound: sender=${msg.sender} uid=${msg.uid} dxuid=${msg.dxuid ?? "-"} isGroup=${msg.isGroup ?? false} groupId=${msg.groupId ?? "-"} messageId=${msg.messageId ?? "-"} content=${msg.text.slice(0, 100)}`);
 
   // ── Deduplicate ───────────────────────────────────────────────────────────
   // Reject messages whose ID was already seen within the TTL window.
@@ -520,7 +520,7 @@ async function handleInbound(
 
   // Record inbound channel activity so `openclaw channels status` can show lastInboundAt.
   channelRuntime.activity.record({
-    channel: "erp2-bridge",
+    channel: "baicao-bridge",
     accountId: account.accountId,
     direction: "inbound",
   });
@@ -570,7 +570,7 @@ async function handleInbound(
       let storeAllowFrom: string[] = [];
       try {
         const stored = await channelRuntime.pairing.readAllowFromStore({
-          channel: "erp2-bridge",
+          channel: "baicao-bridge",
           accountId: account.accountId,
         });
         storeAllowFrom = (stored ?? []).map(String).map(normalizeEntry);
@@ -582,14 +582,14 @@ async function handleInbound(
         // Issue pairing challenge: upsert request → get code → build reply text
         try {
           const { code } = await channelRuntime.pairing.upsertPairingRequest({
-            channel: "erp2-bridge",
+            channel: "baicao-bridge",
             id: normalizeEntry(msg.uid),
             accountId: account.accountId,
             meta: { name: msg.senderName ?? msg.uid },
           });
           const challenge = channelRuntime.pairing.buildPairingReply({
-            channel: "erp2-bridge",
-            idLine: `Your ERP2 Bridge uid: ${msg.uid}`,
+            channel: "baicao-bridge",
+            idLine: `Your Baicao Bridge uid: ${msg.uid}`,
             code,
           });
           const outbound: WireOutboundMessage = {
@@ -644,11 +644,11 @@ async function handleInbound(
   // - Group chats: groupId (or sessionKey fallback) → independent group context
   // - DMs: sessionKey → per-session isolation (one user can have many sessions)
   const peerId = msg.isGroup ? (msg.groupId ?? msg.sessionKey) : msg.sessionKey;
-  log("debug", `[erp2-bridge] route: isGroup=${msg.isGroup ?? false} peerId=${peerId} sessionKey=${msg.sessionKey} groupId=${msg.groupId ?? "-"}`);
+  log("debug", `[baicao-bridge] route: isGroup=${msg.isGroup ?? false} peerId=${peerId} sessionKey=${msg.sessionKey} groupId=${msg.groupId ?? "-"}`);
 
   const route = channelRuntime.routing.resolveAgentRoute({
     cfg,
-    channel: "erp2-bridge",
+    channel: "baicao-bridge",
     accountId: account.accountId,
     peer: {
       kind: msg.isGroup ? "group" : "direct",
@@ -682,7 +682,7 @@ async function handleInbound(
   const metaPrefix = metaParts.join(" ");
 
   const body = channelRuntime.reply.formatAgentEnvelope({
-    channel: "ERP2 Bridge",
+    channel: "Baicao Bridge",
     from: fromLabel,
     timestamp: msg.timestamp,
     previousTimestamp,
@@ -710,9 +710,9 @@ async function handleInbound(
     // is silently skipped — the command falls through to the AI as a normal message.
     CommandAuthorized: true,
     From: msg.isGroup
-      ? `erp2-bridge:group:${peerId}:uid:${msg.uid}`
-      : `erp2-bridge:uid:${msg.uid}:session:${msg.sessionKey}`,
-    To: `erp2-bridge:${peerId}`,  // sendText 的 outboundCtx.to 就是这个值
+      ? `baicao-bridge:group:${peerId}:uid:${msg.uid}`
+      : `baicao-bridge:uid:${msg.uid}:session:${msg.sessionKey}`,
+    To: `baicao-bridge:${peerId}`,  // sendText 的 outboundCtx.to 就是这个值
     SessionKey: route.sessionKey,
     AccountId: route.accountId,
     ChatType: msg.isGroup ? ("group" as const) : ("direct" as const),
@@ -722,12 +722,12 @@ async function handleInbound(
     SenderId: msg.uid,
     GroupSubject: msg.isGroup ? peerId : undefined,
     GroupSystemPrompt: msg.isGroup ? groupSystemPrompt : undefined,
-    Provider: "erp2-bridge",
-    Surface: "erp2-bridge",
+    Provider: "baicao-bridge",
+    Surface: "baicao-bridge",
     MessageSid: msg.messageId,
     Timestamp: msg.timestamp,
-    OriginatingChannel: "erp2-bridge",
-    OriginatingTo: `erp2-bridge:${peerId}`,
+    OriginatingChannel: "baicao-bridge",
+    OriginatingTo: `baicao-bridge:${peerId}`,
     UntrustedContext: [],
   });
 
@@ -741,13 +741,13 @@ async function handleInbound(
     updateLastRoute: !msg.isGroup
       ? {
             sessionKey: route.sessionKey,
-            channel: "erp2-bridge",
+            channel: "baicao-bridge",
             to: msg.uid,
             accountId: route.accountId,
           }
       : undefined,
     onRecordError: (err) => {
-      log("warn", `[erp2-bridge] recordInboundSession failed: ${String(err)}`);
+      log("warn", `[baicao-bridge] recordInboundSession failed: ${String(err)}`);
     },
   });
 
@@ -788,11 +788,11 @@ async function handleInbound(
             fromName: msg.fromName,
             messageId: `${msg.sender ?? "openclaw"}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
           };
-          log("debug", `[erp2-bridge] outbound: receiver=${outbound.receiver} dxuid=${outbound.dxuid ?? "-"} messageId=${outbound.messageId ?? "-"} content=${text.slice(0, 100)}`);
+          log("debug", `[baicao-bridge] outbound: receiver=${outbound.receiver} dxuid=${outbound.dxuid ?? "-"} messageId=${outbound.messageId ?? "-"} content=${text.slice(0, 100)}`);
           sendFn(outbound);
           // Record outbound activity for status visibility.
           channelRuntime.activity.record({
-            channel: "erp2-bridge",
+            channel: "baicao-bridge",
             accountId: account.accountId,
             direction: "outbound",
           });
@@ -801,7 +801,7 @@ async function handleInbound(
     });
   } catch (err) {
     // P0: On AI error, send an error reply back to the user so they know something went wrong.
-    log("error", `[erp2-bridge] dispatchReply failed: ${String(err)}`);
+    log("error", `[baicao-bridge] dispatchReply failed: ${String(err)}`);
     const errorReply: WireOutboundMessage = {
       type: "CHAT",
       content: "[OpenClaw] 处理您的消息时发生错误，请稍后重试。",
@@ -812,7 +812,7 @@ async function handleInbound(
     try {
       sendFn(errorReply);
       channelRuntime.activity.record({
-        channel: "erp2-bridge",
+        channel: "baicao-bridge",
         accountId: account.accountId,
         direction: "outbound",
       });
@@ -825,15 +825,15 @@ async function handleInbound(
 // ── Plugin definition ─────────────────────────────────────────────────────────
 
 const wssBridgePlugin: ChannelPlugin<ResolvedAccount> = {
-  id: "erp2-bridge",
+  id: "baicao-bridge",
 
   meta: {
-    id: "erp2-bridge",
-    label: "ERP2 Bridge",
-    selectionLabel: "ERP2 Bridge (Java Backend via WebSocket)",
-    detailLabel: "ERP2 Bridge",
-    docsPath: "/channels/erp2-bridge",
-    docsLabel: "erp2-bridge",
+    id: "baicao-bridge",
+    label: "Baicao Bridge",
+    selectionLabel: "Baicao Bridge (Java Backend via WebSocket)",
+    detailLabel: "Baicao Bridge",
+    docsPath: "/channels/baicao-bridge",
+    docsLabel: "baicao-bridge",
     blurb:
       "Connect OpenClaw to a Java backend server via a persistent WebSocket with " +
       "session isolation and uid/sessionKey identity metadata.",
@@ -853,7 +853,7 @@ const wssBridgePlugin: ChannelPlugin<ResolvedAccount> = {
     isConfigured: (account) => account.configured,
     isEnabled: (account) => account.enabled,
     defaultAccountId: (cfg) => {
-      const channelCfg = (cfg as CoreConfig).channels?.["erp2-bridge"];
+      const channelCfg = (cfg as CoreConfig).channels?.["baicao-bridge"];
       return channelCfg?.defaultAccount?.trim() || "default";
     },
     describeAccount: (account) => ({
@@ -929,7 +929,7 @@ const wssBridgePlugin: ChannelPlugin<ResolvedAccount> = {
 
       if (!account.configured) {
         log?.error?.(
-          `[erp2-bridge/${account.accountId}] not configured – set channels.erp2-bridge.wsUrl`,
+          `[baicao-bridge/${account.accountId}] not configured – set channels.baicao-bridge.wsUrl`,
         );
         return;
       }
@@ -938,7 +938,7 @@ const wssBridgePlugin: ChannelPlugin<ResolvedAccount> = {
       try {
         channelRuntime = getWssRuntime().channel;
       } catch {
-        log?.error?.("[erp2-bridge] PluginRuntime not initialized – register() may not have been called");
+        log?.error?.("[baicao-bridge] PluginRuntime not initialized – register() may not have been called");
         return;
       }
 
@@ -977,14 +977,14 @@ const wssBridgePlugin: ChannelPlugin<ResolvedAccount> = {
     sendText: async (outboundCtx) => {
       const account = resolveAccount(outboundCtx.cfg, outboundCtx.accountId);
       if (!account.configured) {
-        throw new Error("erp2-bridge not configured – set channels.erp2-bridge.wsUrl");
+        throw new Error("baicao-bridge not configured – set channels.baicao-bridge.wsUrl");
       }
 
-      // Parse the 'to' target: framework sets To as "erp2-bridge:{peerId}", strip the channel prefix
-      const uid = outboundCtx.to.startsWith("erp2-bridge:")
-        ? outboundCtx.to.slice("erp2-bridge:".length)
+      // Parse the 'to' target: framework sets To as "baicao-bridge:{peerId}", strip the channel prefix
+      const uid = outboundCtx.to.startsWith("baicao-bridge:")
+        ? outboundCtx.to.slice("baicao-bridge:".length)
         : outboundCtx.to;
-      console.log(`[erp2-bridge] sendText: to=${outboundCtx.to} → uid=${uid}`);
+      console.log(`[baicao-bridge] sendText: to=${outboundCtx.to} → uid=${uid}`);
 
       const outbound: WireOutboundMessage = {
         type: "CHAT",
@@ -1000,7 +1000,7 @@ const wssBridgePlugin: ChannelPlugin<ResolvedAccount> = {
         try {
           const runtime = getWssRuntime();
           runtime.channel.activity.record({
-            channel: "erp2-bridge",
+            channel: "baicao-bridge",
             accountId: account.accountId,
             direction: "outbound",
           });
@@ -1022,7 +1022,7 @@ const wssBridgePlugin: ChannelPlugin<ResolvedAccount> = {
 
           const route = channelRuntime.routing.resolveAgentRoute({
             cfg: outboundCtx.cfg,
-            channel: "erp2-bridge",
+            channel: "baicao-bridge",
             accountId: account.accountId,
             peer: { kind: "direct", id: effectiveUid },
           });
@@ -1040,18 +1040,18 @@ const wssBridgePlugin: ChannelPlugin<ResolvedAccount> = {
             BodyForAgent: outboundCtx.text,
             RawBody: outboundCtx.text,
             CommandBody: outboundCtx.text,
-            From: `erp2-bridge:uid:${effectiveUid}:session:${route.sessionKey}`,
-            To: `erp2-bridge:${effectiveUid}`,
+            From: `baicao-bridge:uid:${effectiveUid}:session:${route.sessionKey}`,
+            To: `baicao-bridge:${effectiveUid}`,
             SessionKey: route.sessionKey,
             AccountId: route.accountId,
             ChatType: "direct" as const,
             ConversationLabel: effectiveUid,
             SenderName: effectiveUid,
             SenderId: effectiveUid,
-            Provider: "erp2-bridge",
-            Surface: "erp2-bridge",
-            OriginatingChannel: "erp2-bridge",
-            OriginatingTo: `erp2-bridge:${effectiveUid}`,
+            Provider: "baicao-bridge",
+            Surface: "baicao-bridge",
+            OriginatingChannel: "baicao-bridge",
+            OriginatingTo: `baicao-bridge:${effectiveUid}`,
             UntrustedContext: [],
           });
 
@@ -1061,7 +1061,7 @@ const wssBridgePlugin: ChannelPlugin<ResolvedAccount> = {
             ctx: minCtx,
             updateLastRoute: {
               sessionKey: route.sessionKey,
-              channel: "erp2-bridge",
+              channel: "baicao-bridge",
               to: effectiveUid,
               accountId: route.accountId,
             },
@@ -1078,8 +1078,8 @@ const wssBridgePlugin: ChannelPlugin<ResolvedAccount> = {
         recordOutbound();
         await bindOutboundSession();
         return {
-          channel: "erp2-bridge" as const,
-          messageId: `erp2-${Date.now()}`,
+          channel: "baicao-bridge" as const,
+          messageId: `baicao-${Date.now()}`,
           timestamp: outbound.timestamp,
         };
       }
@@ -1101,7 +1101,7 @@ const wssBridgePlugin: ChannelPlugin<ResolvedAccount> = {
         const ws = new WS(account.wsUrl, { headers });
         const timeout = setTimeout(() => {
           ws.terminate?.();
-          reject(new Error("erp2-bridge sendText timeout"));
+          reject(new Error("baicao-bridge sendText timeout"));
         }, 10_000);
         ws.on("open", () => {
           ws.send(JSON.stringify(outbound), (err) => {
@@ -1123,8 +1123,8 @@ const wssBridgePlugin: ChannelPlugin<ResolvedAccount> = {
       await bindOutboundSession();
 
       return {
-        channel: "erp2-bridge" as const,
-        messageId: `erp2-${Date.now()}`,
+        channel: "baicao-bridge" as const,
+        messageId: `baicao-${Date.now()}`,
         timestamp: outbound.timestamp,
       };
     },
@@ -1150,8 +1150,8 @@ const wssBridgePlugin: ChannelPlugin<ResolvedAccount> = {
         policy,
         allowFrom: ctx.account.config.allowFrom ?? [],
         // allowFromPath and approveHint are used by the UI/CLI to show where to edit config
-        allowFromPath: `channels.erp2-bridge${ctx.accountId && ctx.accountId !== "default" ? `.accounts.${ctx.accountId}` : ""}.allowFrom`,
-        approveHint: `openclaw pairing approve erp2-bridge <code>`,
+        allowFromPath: `channels.baicao-bridge${ctx.accountId && ctx.accountId !== "default" ? `.accounts.${ctx.accountId}` : ""}.allowFrom`,
+        approveHint: `openclaw pairing approve baicao-bridge <code>`,
       };
     },
   },

@@ -1,6 +1,6 @@
 {
-  "name": "@openclaw/erp2-bridge",
-  "version": "1.0.0",
+  "name": "@openclaw/baicao-bridge",
+  "version": "2.0.0",
   "description": "OpenClaw channel plugin – connect OpenClaw to an ERP2 Java backend via WebSocket (WSS) with session isolation and uid/sessionKey identity metadata",
   "type": "module",
   "main": "./index.ts",
@@ -26,12 +26,12 @@
       "minHostVersion": ">=2026.2.19"
     },
     "channel": {
-      "id": "erp2-bridge",
-      "label": "ERP2 Bridge",
-      "selectionLabel": "ERP2 Bridge (Java Backend via WebSocket)",
-      "detailLabel": "ERP2 Bridge",
-      "docsPath": "/channels/erp2-bridge",
-      "docsLabel": "erp2-bridge",
+      "id": "baicao-bridge",
+      "label": "Baicao Bridge",
+      "selectionLabel": "Baicao Bridge (Java Backend via WebSocket)",
+      "detailLabel": "Baicao Bridge",
+      "docsPath": "/channels/baicao-bridge",
+      "docsLabel": "baicao-bridge",
       "blurb": "Connect OpenClaw to an ERP2 Java backend server via a persistent WebSocket with session isolation and uid/sessionKey identity.",
       "systemImage": "network"
     }

@@ -1,6 +1,6 @@
 {
-  "id": "erp2-bridge",
-  "name": "ERP2 Bridge",
+  "id": "baicao-bridge",
+  "name": "Baicao Bridge",
   "version": "1.0.0",
   "configSchema": {
     "type": "object",
@@ -221,6 +221,6 @@
     }
   },
   "channels": [
-    "erp2-bridge"
+    "baicao-bridge"
   ]
 }
