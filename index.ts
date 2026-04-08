@@ -55,6 +55,12 @@ interface WireInboundMessage {
   dxuid?: string;
   /** Human-readable sender name – passed directly from the Java backend fromName field. */
   fromName?: string;
+  /** 发送方公众号/机器人 ID（群聊场景，0 表示人发的）。 */
+  fromPubId?: number;
+  /** 发送方公众号/机器人名称（群聊场景）。 */
+  fromPubName?: string;
+  /** 群聊中 @ 类型："human"=人@机器人，"robot"=机器人@机器人。 */
+  groupAtType?: string;
   /** Session key for conversation isolation. */
   sessionKey: string;
   /** Optional human-readable sender name. */
@@ -103,7 +109,10 @@ function normalizeInbound(raw: unknown): WireInboundMessage | null {
   const token = typeof m["token"] === "string" ? m["token"].trim() : undefined;
   const tenantCode = typeof m["tenantCode"] === "string" ? m["tenantCode"].trim() : undefined;
   const dxuid = typeof m["dxuid"] === "string" ? m["dxuid"].trim() : undefined;
-  const fromName = typeof m["fromName"] === "string" ? m["fromName"].trim() : undefined;
+  const fromName = typeof m["fromName"] === "string" ? m["fromName"].trim() : "0";
+  const fromPubId = typeof m["fromPubId"] === "number" ? m["fromPubId"] : undefined;
+  const fromPubName = typeof m["fromPubName"] === "string" ? m["fromPubName"].trim() : undefined;
+  const groupAtType = typeof m["groupAtType"] === "string" ? m["groupAtType"].trim() : undefined;
 
   if (!content || !sender) return null;
 
@@ -125,6 +134,9 @@ function normalizeInbound(raw: unknown): WireInboundMessage | null {
     tenantCode,
     dxuid,
     fromName,
+    fromPubId,
+    fromPubName,
+    groupAtType,
     // derived
     uid: sender,
     sessionKey,
@@ -154,6 +166,12 @@ interface WireOutboundMessage {
   dxuid?: string;
   /** Human-readable sender name – echoed back from the inbound fromName field. */
   fromName?: string;
+  /** 发送方公众号/机器人 ID（群聊场景，0 表示人发的）。 */
+  fromPubId?: number;
+  /** 发送方公众号/机器人名称（群聊场景）。 */
+  fromPubName?: string;
+  /** 群聊中 @ 类型："human"=人@机器人，"robot"=机器人@机器人。 */
+  groupAtType?: string;
   /** Unique outbound message ID generated per delivery frame. */
   messageId?: string;
 }
@@ -679,6 +697,9 @@ async function handleInbound(
   ];
   if (msg.token) metaParts.push(`token:${msg.token}`);
   if (msg.tenantCode) metaParts.push(`tenantCode:${msg.tenantCode}`);
+  if (msg.fromPubId !== undefined) metaParts.push(`fromPubId:${msg.fromPubId}`);
+  if (msg.fromPubName) metaParts.push(`fromPubName:${msg.fromPubName}`);
+  if (msg.groupAtType) metaParts.push(`groupAtType:${msg.groupAtType}`);
   const metaPrefix = metaParts.join(" ");
 
   const body = channelRuntime.reply.formatAgentEnvelope({
@@ -786,6 +807,9 @@ async function handleInbound(
             timestamp: Date.now(),
             dxuid: msg.dxuid,
             fromName: msg.fromName,
+            fromPubId: msg.fromPubId,
+            fromPubName: msg.fromPubName,
+            groupAtType: msg.groupAtType,
             messageId: `${msg.sender ?? "openclaw"}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
           };
           log("debug", `[baicao-bridge] outbound: receiver=${outbound.receiver} dxuid=${outbound.dxuid ?? "-"} messageId=${outbound.messageId ?? "-"} content=${text.slice(0, 100)}`);
