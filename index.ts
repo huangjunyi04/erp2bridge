@@ -892,60 +892,6 @@ const wssBridgePlugin: ChannelPlugin<ResolvedAccount> = {
   },
 
   configSchema: {
-    // jsonSchema: v2026.4.2+; schema: pre-v2026.4.2 compat
-    jsonSchema: {
-      type: "object",
-      additionalProperties: false,
-      properties: {
-        enabled: { type: "boolean" },
-        wsUrl: { type: "string", description: "WebSocket URL of the Java backend" },
-        token: { type: "string", description: "Bearer token for Authorization header" },
-        tokenFile: { type: "string", description: "Path to file containing the bearer token" },
-        dmPolicy: { type: "string", enum: ["pairing", "open", "allowlist", "disabled"] },
-        allowFrom: { type: "array", items: { type: "string" } },
-        groupPolicy: { type: "string", enum: ["open", "allowlist", "disabled"] },
-        groupAllowFrom: { type: "array", items: { type: "string" } },
-        pingIntervalMs: { type: "integer", minimum: 1000 },
-        reconnectBaseMs: { type: "integer", minimum: 100 },
-        reconnectMaxMs: { type: "integer", minimum: 1000 },
-        connectTimeoutMs: { type: "integer", minimum: 1000 },
-        defaultAccount: { type: "string" },
-        groups: {
-          type: "object",
-          additionalProperties: {
-            type: "object",
-            additionalProperties: false,
-            properties: {
-              requireMention: { type: "boolean" },
-              allowFrom: { type: "array", items: { type: "string" } },
-              systemPrompt: { type: "string" },
-            },
-          },
-        },
-        accounts: {
-          type: "object",
-          additionalProperties: {
-            type: "object",
-            additionalProperties: false,
-            required: ["wsUrl"],
-            properties: {
-              enabled: { type: "boolean" },
-              wsUrl: { type: "string" },
-              token: { type: "string" },
-              tokenFile: { type: "string" },
-              dmPolicy: { type: "string", enum: ["pairing", "open", "allowlist", "disabled"] },
-              allowFrom: { type: "array", items: { type: "string" } },
-              groupPolicy: { type: "string", enum: ["open", "allowlist", "disabled"] },
-              groupAllowFrom: { type: "array", items: { type: "string" } },
-              pingIntervalMs: { type: "integer", minimum: 1000 },
-              reconnectBaseMs: { type: "integer", minimum: 100 },
-              reconnectMaxMs: { type: "integer", minimum: 1000 },
-              connectTimeoutMs: { type: "integer", minimum: 1000 },
-            },
-          },
-        },
-      },
-    },
     schema: {
       type: "object",
       additionalProperties: false,
