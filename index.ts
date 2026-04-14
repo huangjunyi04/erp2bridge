@@ -913,7 +913,6 @@ const wssBridgePlugin: ChannelPlugin<ResolvedAccount> = {
           type: "object",
           additionalProperties: {
             type: "object",
-            additionalProperties: false,
             properties: {
               requireMention: { type: "boolean" },
               allowFrom: { type: "array", items: { type: "string" } },
@@ -925,8 +924,6 @@ const wssBridgePlugin: ChannelPlugin<ResolvedAccount> = {
           type: "object",
           additionalProperties: {
             type: "object",
-            additionalProperties: false,
-            required: ["wsUrl"],
             properties: {
               enabled: { type: "boolean" },
               wsUrl: { type: "string" },

@@ -59,7 +59,6 @@
         "description": "Per-group or per-session configuration. Use '*' as a wildcard.",
         "additionalProperties": {
           "type": "object",
-          "additionalProperties": false,
           "properties": {
             "requireMention": {
               "type": "boolean"
@@ -105,7 +104,6 @@
         "description": "Named account configurations for multi-account support",
         "additionalProperties": {
           "type": "object",
-          "additionalProperties": false,
           "properties": {
             "enabled": {
               "type": "boolean"
