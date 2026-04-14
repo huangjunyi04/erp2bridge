@@ -220,5 +220,69 @@
   },
   "channels": [
     "baicao-bridge"
-  ]
+  ],
+  "channelConfigs": {
+    "baicao-bridge": {
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "enabled": { "type": "boolean" },
+          "wsUrl": { "type": "string", "description": "WebSocket URL of the Java backend, e.g. wss://backend.example.com/ws" },
+          "token": { "type": "string", "description": "Bearer token for the Authorization header" },
+          "tokenFile": { "type": "string", "description": "Path to a file containing the bearer token" },
+          "dmPolicy": { "type": "string", "enum": ["pairing", "open", "allowlist", "disabled"], "description": "Policy for direct messages." },
+          "allowFrom": { "type": "array", "items": { "type": "string" }, "description": "UIDs allowed to send DMs" },
+          "groupPolicy": { "type": "string", "enum": ["open", "allowlist", "disabled"], "description": "Policy for group/channel messages" },
+          "groupAllowFrom": { "type": "array", "items": { "type": "string" }, "description": "UIDs allowed to send messages in group contexts" },
+          "pingIntervalMs": { "type": "integer", "minimum": 1000, "description": "WebSocket ping interval in milliseconds (default: 30000)" },
+          "reconnectBaseMs": { "type": "integer", "minimum": 100, "description": "Base reconnect delay in milliseconds (default: 1000)" },
+          "reconnectMaxMs": { "type": "integer", "minimum": 1000, "description": "Maximum reconnect delay in milliseconds (default: 30000)" },
+          "connectTimeoutMs": { "type": "integer", "minimum": 1000, "description": "WebSocket connection timeout in milliseconds (default: 10000)" },
+          "defaultAccount": { "type": "string", "description": "Default account ID to use when accountId is not specified" },
+          "groups": {
+            "type": "object",
+            "description": "Per-group or per-session configuration. Use '*' as a wildcard.",
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "requireMention": { "type": "boolean" },
+                "allowFrom": { "type": "array", "items": { "type": "string" } },
+                "systemPrompt": { "type": "string" }
+              }
+            }
+          },
+          "accounts": {
+            "type": "object",
+            "description": "Named account configurations for multi-account support",
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "enabled": { "type": "boolean" },
+                "wsUrl": { "type": "string" },
+                "token": { "type": "string" },
+                "tokenFile": { "type": "string" },
+                "dmPolicy": { "type": "string", "enum": ["pairing", "open", "allowlist", "disabled"] },
+                "allowFrom": { "type": "array", "items": { "type": "string" } },
+                "groupPolicy": { "type": "string", "enum": ["open", "allowlist", "disabled"] },
+                "groupAllowFrom": { "type": "array", "items": { "type": "string" } },
+                "pingIntervalMs": { "type": "integer", "minimum": 1000 },
+                "reconnectBaseMs": { "type": "integer", "minimum": 100 },
+                "reconnectMaxMs": { "type": "integer", "minimum": 1000 },
+                "connectTimeoutMs": { "type": "integer", "minimum": 1000 }
+              }
+            }
+          }
+        }
+      },
+      "uiHints": {
+        "wsUrl": { "label": "WebSocket URL", "placeholder": "wss://backend.example.com/ws", "help": "WebSocket URL of your Java backend server" },
+        "token": { "label": "Bearer Token", "sensitive": true, "help": "Authorization token sent in the WebSocket handshake header" },
+        "tokenFile": { "label": "Token File Path", "help": "Path to a file containing the bearer token (takes priority over token)" },
+        "dmPolicy": { "label": "DM Policy", "help": "Controls who can send direct messages. 'pairing' = approval required, 'open' = anyone, 'allowlist' = uid must be in allowFrom list" },
+        "allowFrom": { "label": "Allowed UIDs (DM)", "help": "List of UIDs that are allowed to send DMs" },
+        "groups.*.requireMention": { "label": "Require Mention", "help": "If true, the bot must be @mentioned in group messages for it to respond" }
+      }
+    }
+  }
 }
