@@ -695,6 +695,8 @@ async function handleInbound(
     `uid:${msg.uid}`,
     `session_key:${route.sessionKey}`,
   ];
+  if (msg.dxuid) metaParts.push(`dxuid:${msg.dxuid}`);
+  if (msg.fromName && msg.fromName !== "0") metaParts.push(`fromName:${msg.fromName}`);
   if (msg.token) metaParts.push(`token:${msg.token}`);
   if (msg.tenantCode) metaParts.push(`tenantCode:${msg.tenantCode}`);
   if (msg.fromPubId !== undefined) metaParts.push(`fromPubId:${msg.fromPubId}`);
