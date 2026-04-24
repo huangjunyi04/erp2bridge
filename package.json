@@ -1,6 +1,6 @@
 {
   "name": "@openclaw/baicao-bridge",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "OpenClaw channel plugin – connect OpenClaw to an ERP2 Java backend via WebSocket (WSS) with session isolation and uid/sessionKey identity metadata",
   "type": "module",
   "main": "./index.ts",
