@@ -805,7 +805,7 @@ async function handleInbound(
             type: "CHAT",
             content: text,
             sender: "openclaw",
-            receiver: msg.sender ?? msg.uid,
+            receiver: (msg.isGroup ? msg.groupId : msg.sender) ?? msg.uid,
             timestamp: Date.now(),
             dxuid: msg.dxuid,
             fromName: msg.fromName,
@@ -832,7 +832,7 @@ async function handleInbound(
       type: "CHAT",
       content: "[OpenClaw] 处理您的消息时发生错误，请稍后重试。",
       sender: "openclaw",
-      receiver: msg.sender ?? msg.uid,
+      receiver: (msg.isGroup ? msg.groupId : msg.sender) ?? msg.uid,
       timestamp: Date.now(),
     };
     try {
