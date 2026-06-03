@@ -15,7 +15,8 @@ import type {
   OpenClawConfig,
   PluginRuntime,
 } from "openclaw/plugin-sdk";
-import { createDedupeCache, type DedupeCache } from "openclaw/plugin-sdk";
+// @ts-ignore — openclaw/plugin-sdk/core is available on 4.x host runtime
+import { createDedupeCache, type DedupeCache } from "openclaw/plugin-sdk/core";
 
 // ── Global runtime singleton (injected by register()) ────────────────────────
 let _wssRuntime: PluginRuntime | null = null;
